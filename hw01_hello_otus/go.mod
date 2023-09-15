@@ -1,4 +1,4 @@
-module github.com/Vasilui/hw01_hello_otus
+module github.com/Vasilui/otus_homework/hw01_hello_otus
 
 go 1.19
 
