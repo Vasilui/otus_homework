@@ -6,7 +6,8 @@ Hello, OTUS!
 ```
 
 Для переворота строки следует воспользоваться возможностями
-[golang.org/x/example/stringutil](https://github.com/golang/example/tree/master/stringutil).
+~~[golang.org/x/example/stringutil](https://github.com/golang/example/tree/master/stringutil).~~
+(данная утилита переехала в новый репозиторий [golang/example/tree/master/hello](https://github.com/golang/example/tree/master/hello))
 
 Кроме этого необходимо исправить **go.mod** так, чтобы для данного модуля работала
 команда `go get`, а полученный **go.sum** закоммитить.
