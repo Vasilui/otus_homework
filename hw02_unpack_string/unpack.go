@@ -116,16 +116,13 @@ func isBackslashSymbol(backslash *bool, elByOutString *string, sBuilder *strings
 }
 
 func (s Symbol) IsNumber() bool {
-
 	return s.el > 47 && s.el < 58
 }
 
 func (s Symbol) IsCorrect() bool {
-
 	return s.el < 33 || s.el > 64 && s.el < 91 || s.el > 96 && s.el < 123
 }
 
 func (s Symbol) IsBackslash() bool {
-
 	return s.el == 92
 }
