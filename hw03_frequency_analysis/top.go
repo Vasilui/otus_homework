@@ -31,7 +31,7 @@ func Top10(input string) []string {
 		return items[i].Count > items[j].Count
 	})
 
-	var res []string
+	res := make([]string, 0)
 
 	for i := range items {
 		res = append(res, items[i].World)
