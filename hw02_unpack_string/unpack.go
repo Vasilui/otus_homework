@@ -24,56 +24,24 @@ func Unpack(data string) (string, error) {
 	for i := range data {
 		s := Symbol{el: data[i]}
 		if s.IsCorrect() {
-			if backslash {
-				return "", ErrInvalidString
+			err := isCorrectSymbol(s.el, &backslash, &elByOutString, &sBuilder, &count)
+			if err != nil {
+				return "", err
 			}
-			if elByOutString != "" {
-				_, err := fmt.Fprintf(&sBuilder, "%s", elByOutString)
-				if err != nil {
-					return "", ErrInternal
-				}
-			}
-
-			count = 0
-			elByOutString = string(s.el)
 		}
 
 		if s.IsNumber() {
-			if backslash {
-				elByOutString = string(s.el)
-				backslash = false
-				continue
-			} else {
-				count = int(s.el - 48)
-			}
-
-			if elByOutString == "" || count == -1 {
-				return "", ErrInvalidString
-			}
-
-			_, err := fmt.Fprintf(&sBuilder, "%s", strings.Repeat(elByOutString, count))
+			err := isNumberSymbol(s.el, &backslash, &elByOutString, &sBuilder, &count)
 			if err != nil {
-				return "", ErrInternal
+				return "", err
 			}
-
-			count = -1
-			elByOutString = ""
 		}
 
 		if s.IsBackslash() {
-			if elByOutString != "" {
-				if _, err := fmt.Fprintf(&sBuilder, "%s", elByOutString); err != nil {
-					return "", ErrInternal
-				}
-				elByOutString = ""
+			err := isBackslashSymbol(&backslash, &elByOutString, &sBuilder)
+			if err != nil {
+				return "", err
 			}
-			if backslash {
-				elByOutString = "\\"
-				backslash = false
-				continue
-			}
-
-			backslash = true
 		}
 	}
 
@@ -85,6 +53,66 @@ func Unpack(data string) (string, error) {
 	}
 
 	return sBuilder.String(), nil
+}
+
+func isCorrectSymbol(s uint8, backslash *bool, elByOutString *string, sBuilder *strings.Builder, count *int) error {
+	if *backslash {
+		return ErrInvalidString
+	}
+
+	if *elByOutString != "" {
+		_, err := fmt.Fprintf(sBuilder, "%s", *elByOutString)
+		if err != nil {
+			return ErrInternal
+		}
+	}
+
+	*count = 0
+	*elByOutString = string(s)
+
+	return nil
+}
+
+func isNumberSymbol(s uint8, backslash *bool, elByOutString *string, sBuilder *strings.Builder, count *int) error {
+	if *backslash {
+		*elByOutString = string(s)
+		*backslash = false
+		return nil
+	} else {
+		*count = int(s - 48)
+	}
+
+	if *elByOutString == "" || *count == -1 {
+		return ErrInvalidString
+	}
+
+	_, err := fmt.Fprintf(sBuilder, "%s", strings.Repeat(*elByOutString, *count))
+	if err != nil {
+		return ErrInternal
+	}
+
+	*count = -1
+	*elByOutString = ""
+
+	return nil
+}
+
+func isBackslashSymbol(backslash *bool, elByOutString *string, sBuilder *strings.Builder) error {
+	if *elByOutString != "" {
+		if _, err := fmt.Fprintf(sBuilder, "%s", *elByOutString); err != nil {
+			return ErrInternal
+		}
+		*elByOutString = ""
+	}
+	if *backslash {
+		*elByOutString = "\\"
+		*backslash = false
+		return nil
+	}
+
+	*backslash = true
+
+	return nil
 }
 
 func (s Symbol) IsNumber() bool {
