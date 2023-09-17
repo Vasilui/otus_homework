@@ -60,8 +60,7 @@ func Unpack(data string) (string, error) {
 
 		if s.IsBackslash() {
 			if elByOutString != "" {
-				_, err := fmt.Fprintf(&sBuilder, "%s", elByOutString)
-				if err != nil {
+				if _, err := fmt.Fprintf(&sBuilder, "%s", elByOutString); err != nil {
 					return "", ErrInternal
 				}
 				elByOutString = ""
@@ -69,9 +68,10 @@ func Unpack(data string) (string, error) {
 			if backslash {
 				elByOutString = "\\"
 				backslash = false
-			} else {
-				backslash = true
+				continue
 			}
+
+			backslash = true
 		}
 	}
 
