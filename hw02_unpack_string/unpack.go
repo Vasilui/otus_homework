@@ -78,9 +78,9 @@ func isNumberSymbol(s uint8, backslash *bool, elByOutString *string, sBuilder *s
 		*elByOutString = string(s)
 		*backslash = false
 		return nil
-	} else {
-		*count = int(s - 48)
 	}
+
+	*count = int(s - 48)
 
 	if *elByOutString == "" || *count == -1 {
 		return ErrInvalidString
