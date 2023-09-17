@@ -6,8 +6,10 @@ import (
 	"strings"
 )
 
-var ErrInvalidString = errors.New("invalid string")
-var ErrInternal = errors.New("internal error")
+var (
+	ErrInvalidString = errors.New("invalid string")
+	ErrInternal      = errors.New("internal error")
+)
 
 type Symbol struct {
 	el uint8
@@ -102,6 +104,5 @@ func (s Symbol) IsCorrect() bool {
 }
 
 func (s Symbol) IsBackslash() bool {
-
 	return s.el == 92
 }
