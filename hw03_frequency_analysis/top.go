@@ -12,9 +12,8 @@ type Item struct {
 }
 
 func Top10(input string) []string {
-	var res []string
 	if input == "" {
-		return res
+		return nil
 	}
 
 	words := strings.FieldsFunc(input, Split)
@@ -31,6 +30,8 @@ func Top10(input string) []string {
 		}
 		return items[i].Count > items[j].Count
 	})
+
+	var res []string
 
 	for i := range items {
 		res = append(res, items[i].World)
@@ -56,10 +57,8 @@ func SliceToMap(in []string) map[string]int {
 
 		if _, ok := m[world]; ok {
 			m[world]++
-		} else {
-			if world != "-" && world != "" {
-				m[world] = 1
-			}
+		} else if world != "-" && world != "" {
+			m[world] = 1
 		}
 	}
 
