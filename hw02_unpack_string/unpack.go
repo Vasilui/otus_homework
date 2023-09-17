@@ -102,9 +102,6 @@ func (s Symbol) IsCorrect() bool {
 }
 
 func (s Symbol) IsBackslash() bool {
-	if s.el == 92 {
-		return true
-	}
 
-	return false
+	return s.el == 92
 }
