@@ -45,6 +45,10 @@ func Unpack(data string) (string, error) {
 		}
 	}
 
+	if backslash {
+		return "", ErrInvalidString
+	}
+
 	if elByOutString != "" {
 		_, err := fmt.Fprintf(&sBuilder, "%s", elByOutString)
 		if err != nil {
