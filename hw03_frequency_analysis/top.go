@@ -31,7 +31,7 @@ func Top10(input string) []string {
 		return items[i].Count > items[j].Count
 	})
 
-	res := make([]string, 0)
+	res := make([]string, 0, 10)
 
 	for i := range items {
 		res = append(res, items[i].World)
@@ -51,14 +51,12 @@ func SliceToMap(in []string) map[string]int {
 	m := make(map[string]int, 0)
 
 	for i := range in {
-		world := strings.TrimFunc(strings.ToLower(in[i]), func(r rune) bool {
+		word := strings.TrimFunc(strings.ToLower(in[i]), func(r rune) bool {
 			return r != '-' && !unicode.IsLetter(r) && !unicode.IsNumber(r)
 		})
 
-		if _, ok := m[world]; ok {
-			m[world]++
-		} else if world != "-" && world != "" {
-			m[world] = 1
+		if word != "-" && word != "" {
+			m[word]++
 		}
 	}
 
