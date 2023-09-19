@@ -67,26 +67,27 @@ func (l *list) PushBack(v interface{}) *ListItem {
 
 // Remove - удалить элемент.
 func (l *list) Remove(i *ListItem) {
-	if i == l.front {
+	switch {
+	case i == l.front:
 		l.front, l.front.Next.Prev = l.front.Next, nil
-	} else if i == l.back {
+	case i == l.back:
 		l.back, l.back.Prev.Next = l.back.Prev, nil
-	} else {
-		i.Prev.Next = i.Next
-		i.Next.Prev = i.Prev
-		i.Next = nil
-		i.Prev = nil
+	default:
+		i.Prev.Next, i.Next.Prev = i.Next, i.Prev
+		i.Next, i.Prev = nil, nil
 	}
+
 	l.len--
 }
 
 // MoveToFront - переместить элемент в начало
 func (l *list) MoveToFront(i *ListItem) {
-	if i == l.front {
+	switch {
+	case i == l.front:
 		return
-	} else if i == l.back {
+	case i == l.back:
 		i.Prev.Next, l.back = nil, i.Prev
-	} else {
+	default:
 		i.Prev.Next, i.Next.Prev = i.Next, i.Prev
 	}
 
