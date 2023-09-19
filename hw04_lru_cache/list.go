@@ -80,7 +80,7 @@ func (l *list) Remove(i *ListItem) {
 	l.len--
 }
 
-// MoveToFront - переместить элемент в начало
+// MoveToFront - переместить элемент в начало.
 func (l *list) MoveToFront(i *ListItem) {
 	switch {
 	case i == l.front:
