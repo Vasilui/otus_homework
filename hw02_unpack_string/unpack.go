@@ -11,9 +11,7 @@ var (
 	ErrInternal      = errors.New("internal error")
 )
 
-type Symbol struct {
-	el uint8
-}
+type Symbol uint8
 
 func Unpack(data string) (string, error) {
 	sBuilder := strings.Builder{}
@@ -22,16 +20,16 @@ func Unpack(data string) (string, error) {
 	backslash := false
 
 	for i := range data {
-		s := Symbol{el: data[i]}
+		s := Symbol(data[i])
 		if s.IsCorrect() {
-			err := isCorrectSymbol(s.el, &backslash, &elByOutString, &sBuilder, &count)
+			err := isCorrectSymbol(data[i], backslash, &elByOutString, &sBuilder, &count)
 			if err != nil {
 				return "", err
 			}
 		}
 
 		if s.IsNumber() {
-			err := isNumberSymbol(s.el, &backslash, &elByOutString, &sBuilder, &count)
+			err := isNumberSymbol(data[i], &backslash, &elByOutString, &sBuilder, &count)
 			if err != nil {
 				return "", err
 			}
@@ -59,8 +57,8 @@ func Unpack(data string) (string, error) {
 	return sBuilder.String(), nil
 }
 
-func isCorrectSymbol(s uint8, backslash *bool, elByOutString *string, sBuilder *strings.Builder, count *int) error {
-	if *backslash {
+func isCorrectSymbol(s uint8, backslash bool, elByOutString *string, sBuilder *strings.Builder, count *int) error {
+	if backslash {
 		return ErrInvalidString
 	}
 
@@ -120,13 +118,13 @@ func isBackslashSymbol(backslash *bool, elByOutString *string, sBuilder *strings
 }
 
 func (s Symbol) IsNumber() bool {
-	return s.el > 47 && s.el < 58
+	return s > 47 && s < 58
 }
 
 func (s Symbol) IsCorrect() bool {
-	return s.el < 33 || s.el > 64 && s.el < 91 || s.el > 96 && s.el < 123
+	return s < 33 || s > 64 && s < 91 || s > 96 && s < 123
 }
 
 func (s Symbol) IsBackslash() bool {
-	return s.el == 92
+	return s == 92
 }
