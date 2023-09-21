@@ -96,6 +96,5 @@ func TestRun(t *testing.T) {
 
 		require.Equal(t, runTasksCount, int32(tasksCount), "not all tasks were completed")
 		require.LessOrEqual(t, int64(elapsedTime), int64(sumTime/2), "tasks were run sequentially?")
-		require.Eventuallyf(t, func() bool { return false }, time.Second, 10*time.Millisecond, "error message %s", "formatted")
 	})
 }
