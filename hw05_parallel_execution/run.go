@@ -28,11 +28,8 @@ func Work(tasks <-chan Task, results chan<- error, stop <-chan struct{}, wg *syn
 				br = false
 			case <-stop:
 				for {
-					select {
-					case r := <-res:
-						results <- r
-						return
-					}
+					results <- <-res
+					return
 				}
 			}
 		}
