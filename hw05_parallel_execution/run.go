@@ -63,15 +63,19 @@ func Run(tasks []Task, n, m int) error {
 
 	// Receive results
 	for a := 1; a <= len(tasks); a++ {
-		if res, ok := <-results; ok {
-			if res != nil {
-				m--
-				if m == 1 {
-					for w := 1; w <= n; w++ {
-						out <- struct{}{}
-					}
-					return ErrErrorsLimitExceeded
+		if res, ok := <-results; ok && res != nil {
+			m--
+			if m == 1 {
+				for w := 1; w <= n; w++ {
+					out <- struct{}{}
 				}
+				for {
+					if _, ok := <-results; ok {
+						continue
+					}
+					break
+				}
+				return ErrErrorsLimitExceeded
 			}
 		}
 	}
