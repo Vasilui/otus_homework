@@ -13,19 +13,16 @@ func Process(task Task, results chan<- error) {
 	results <- task()
 }
 
-func Work(tasks <-chan Task, results chan<- error, stop <-chan struct{}, wg *sync.WaitGroup) {
-	defer wg.Done()
-
+func Work(tasks <-chan Task, results chan<- error, stop <-chan struct{}) {
 	for task := range tasks {
 		res := make(chan error)
-		br := true
 		go Process(task, res)
-
-		for br {
+	Loop:
+		for {
 			select {
 			case r := <-res:
 				results <- r
-				br = false
+				break Loop
 			case <-stop:
 				for {
 					results <- <-res
@@ -46,7 +43,10 @@ func Run(tasks []Task, n, m int) error {
 	// run workers
 	for w := 1; w <= n; w++ {
 		wg.Add(1)
-		go Work(jobs, results, out, &wg)
+		go func() {
+			defer wg.Done()
+			Work(jobs, results, out)
+		}()
 	}
 
 	// send jobs
