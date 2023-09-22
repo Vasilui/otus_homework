@@ -20,6 +20,9 @@ type lruCache struct {
 
 // Clear - Очистить кэш.
 func (l *lruCache) Clear() {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
 	l.queue = NewList()
 	l.items = make(map[Key]*ListItem, l.capacity)
 	l.byItems = make(map[*ListItem]Key, l.capacity)

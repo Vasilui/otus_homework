@@ -121,3 +121,25 @@ func TestCacheMultithreading(_ *testing.T) {
 
 	wg.Wait()
 }
+
+func TestClearMultithreading(_ *testing.T) {
+	c := NewCache(10)
+	wg := &sync.WaitGroup{}
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 1_000_000; i++ {
+			c.Set(Key(strconv.Itoa(i)), i)
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 1_000_000; i++ {
+			c.Clear()
+		}
+	}()
+
+	wg.Wait()
+}
