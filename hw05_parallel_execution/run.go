@@ -5,7 +5,10 @@ import (
 	"sync"
 )
 
-var ErrErrorsLimitExceeded = errors.New("errors limit exceeded")
+var (
+	ErrErrorsLimitExceeded  = errors.New("errors limit exceeded")
+	ErrErrorsCountOfWorkers = errors.New("errors limit count of workers")
+)
 
 type Task func() error
 
@@ -35,6 +38,9 @@ func Work(tasks <-chan Task, results chan<- error, stop <-chan struct{}) {
 
 // Run starts tasks in n goroutines and stops its work when receiving m errors from tasks.
 func Run(tasks []Task, n, m int) error {
+	if n < 1 {
+		return ErrErrorsCountOfWorkers
+	}
 	jobs := make(chan Task, len(tasks))
 	results := make(chan error, len(tasks))
 	out := make(chan struct{}, n)
@@ -50,11 +56,14 @@ func Run(tasks []Task, n, m int) error {
 	}
 
 	// send jobs
+	i := 0
 	for _, task := range tasks {
 		jobs <- task
+		i++
+		if i == n {
+			break
+		}
 	}
-
-	close(jobs)
 
 	go func() {
 		wg.Wait()
@@ -65,10 +74,8 @@ func Run(tasks []Task, n, m int) error {
 	for a := 1; a <= len(tasks); a++ {
 		if res, ok := <-results; ok && res != nil {
 			m--
-			if m == 1 {
-				for w := 1; w <= n; w++ {
-					out <- struct{}{}
-				}
+			if m == 0 {
+				close(jobs)
 				for {
 					if _, ok := <-results; ok {
 						continue
@@ -77,6 +84,19 @@ func Run(tasks []Task, n, m int) error {
 				}
 				return ErrErrorsLimitExceeded
 			}
+		}
+		if i < len(tasks) {
+			jobs <- tasks[i]
+			i++
+		} else {
+			close(jobs)
+			for {
+				if _, ok := <-results; ok {
+					continue
+				}
+				break
+			}
+			return nil
 		}
 	}
 

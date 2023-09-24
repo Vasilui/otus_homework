@@ -122,4 +122,23 @@ func TestRun(t *testing.T) {
 			return runTasksCount == int32(tasksCount)
 		}, time.Second, time.Microsecond, "not all tasks were completed")
 	})
+
+	t.Run("check negative count workers", func(t *testing.T) {
+		tasksCount := 50
+		tasks := make([]Task, 0, tasksCount)
+
+		for i := 0; i < tasksCount; i++ {
+			taskSleep := time.Millisecond * time.Duration(rand.Intn(100))
+			tasks = append(tasks, func() error {
+				time.Sleep(taskSleep)
+				return nil
+			})
+		}
+
+		workersCount := -1
+		maxErrorsCount := 1
+
+		err := Run(tasks, workersCount, maxErrorsCount)
+		require.Truef(t, errors.Is(err, ErrErrorsCountOfWorkers), "actual error %q", err)
+	})
 }
