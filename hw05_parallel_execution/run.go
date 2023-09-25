@@ -3,6 +3,7 @@ package hw05parallelexecution
 import (
 	"errors"
 	"sync"
+	"sync/atomic"
 )
 
 var (
@@ -12,92 +13,44 @@ var (
 
 type Task func() error
 
-func Process(task Task, results chan<- error) {
-	results <- task()
-}
-
-func Work(tasks <-chan Task, results chan<- error, stop <-chan struct{}) {
-	for task := range tasks {
-		res := make(chan error)
-		go Process(task, res)
-	Loop:
-		for {
-			select {
-			case r := <-res:
-				results <- r
-				break Loop
-			case <-stop:
-				for {
-					results <- <-res
-					return
-				}
-			}
-		}
-	}
-}
-
 // Run starts tasks in n goroutines and stops its work when receiving m errors from tasks.
 func Run(tasks []Task, n, m int) error {
 	if n < 1 {
 		return ErrErrorsCountOfWorkers
 	}
-	jobs := make(chan Task, len(tasks))
-	results := make(chan error, len(tasks))
-	out := make(chan struct{}, n)
+
+	if len(tasks) < n {
+		n = len(tasks)
+	}
+
+	countErrors := int32(0)
+	ch := make(chan Task)
 	wg := sync.WaitGroup{}
 
-	// run workers
-	for w := 1; w <= n; w++ {
+	for i := 0; i < n; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			Work(jobs, results, out)
+			for t := range ch {
+				if err := t(); err != nil {
+					atomic.AddInt32(&countErrors, 1)
+				}
+			}
 		}()
 	}
 
-	// send jobs
-	i := 0
-	for _, task := range tasks {
-		jobs <- task
-		i++
-		if i == n {
+	for _, t := range tasks {
+		if m > 0 && atomic.LoadInt32(&countErrors) >= int32(m) {
 			break
 		}
+		ch <- t
 	}
 
-	go func() {
-		wg.Wait()
-		close(results)
-	}()
+	close(ch)
+	wg.Wait()
 
-	// Receive results
-	for a := 1; a <= len(tasks); a++ {
-		if res, ok := <-results; ok && res != nil {
-			m--
-			if m == 0 {
-				close(jobs)
-				for {
-					if _, ok := <-results; ok {
-						continue
-					}
-					break
-				}
-				return ErrErrorsLimitExceeded
-			}
-		}
-		if i < len(tasks) {
-			jobs <- tasks[i]
-			i++
-		} else {
-			close(jobs)
-			for {
-				if _, ok := <-results; ok {
-					continue
-				}
-				break
-			}
-			return nil
-		}
+	if m > 0 && atomic.LoadInt32(&countErrors) >= int32(m) {
+		return ErrErrorsLimitExceeded
 	}
 
 	return nil
