@@ -14,19 +14,13 @@ func Worker(in Bi, done In, out Out) {
 		case <-done:
 			close(in)
 			return
-		default:
-			select {
-			case <-done:
+		case tmp, ok := <-out:
+			if !ok {
 				close(in)
 				return
-			case tmp, ok := <-out:
-				if ok {
-					in <- tmp
-				} else {
-					close(in)
-					return
-				}
 			}
+			in <- tmp
+		default:
 		}
 	}
 }
