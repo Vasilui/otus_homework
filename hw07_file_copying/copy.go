@@ -16,42 +16,19 @@ var (
 )
 
 func Copy(fromPath, toPath string, offset, limit int64) error {
-	if from == "" || to == "" {
-		return ErrUnsupportedFile
-	}
-
-	if limit != 0 {
-		limit += offset
-	}
-
-	// статистика по файлу источнику
-	fromFileStat, err := os.Stat(fromPath)
+	size, err := validate(fromPath, toPath, offset, &limit)
 	if err != nil {
 		return err
 	}
-
-	// если исходный файл не обычный - кидаем ошибку
-	if !fromFileStat.Mode().IsRegular() {
-		return ErrIsNotRegularFile
-	}
-
-	// если сдвиг больше размера исходного файла - кидаем ошибку
-	if fromFileStat.Size() < offset {
-		return ErrOffsetExceedsFileSize
-	}
-
 	src, err := os.Open(fromPath)
 	if err != nil {
 		return err
 	}
-
 	defer func() {
-		closeErr := src.Close()
-		if closeErr != nil {
+		if closeErr := src.Close(); closeErr != nil {
 			log.Fatal("failed close file")
 		}
 	}()
-
 	_, err = src.Seek(offset, io.SeekStart)
 	if err != nil {
 		return err
@@ -61,17 +38,48 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 	if err != nil {
 		return ErrOpenWriteFile
 	}
-
 	defer func() {
-		closeErr := dst.Close()
-		if closeErr != nil {
+		if closeErr := dst.Close(); closeErr != nil {
 			log.Fatal("failed close file")
 		}
 	}()
 
+	return processCopy(src, dst, offset, limit, size)
+}
+
+func validate(fromPath, toPath string, offset int64, limit *int64) (int64, error) {
+	if from == "" || toPath == "" {
+		return 0, ErrUnsupportedFile
+	}
+
+	if *limit != 0 {
+		*limit += offset
+	}
+
+	// статистика по файлу источнику
+	fromFileStat, err := os.Stat(fromPath)
+	if err != nil {
+		return 0, err
+	}
+
+	// если исходный файл не обычный - кидаем ошибку
+	if !fromFileStat.Mode().IsRegular() {
+		return 0, ErrIsNotRegularFile
+	}
+
+	// если сдвиг больше размера исходного файла - кидаем ошибку
+	size := fromFileStat.Size()
+	if size < offset {
+		return size, ErrOffsetExceedsFileSize
+	}
+
+	return size, nil
+}
+
+func processCopy(src, dst *os.File, offset, limit, fromFileSize int64) error {
 	// создаем прогрессбар
 	bar := Bar{}
-	pbSize := fromFileStat.Size()
+	pbSize := fromFileSize
 	if limit != 0 {
 		pbSize = limit
 	}

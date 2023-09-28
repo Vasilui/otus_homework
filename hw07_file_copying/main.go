@@ -20,10 +20,6 @@ func init() {
 
 func main() {
 	flag.Parse()
-	from = "/tmp/test"
-	to = "/tmp/dst"
-	offset = 10
-	limit = 2
 
 	switch {
 	case limit < 0:
