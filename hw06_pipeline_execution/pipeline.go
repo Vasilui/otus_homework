@@ -20,7 +20,6 @@ func Worker(in Bi, done In, out Out) {
 				return
 			}
 			in <- tmp
-		default:
 		}
 	}
 }
