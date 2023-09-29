@@ -59,5 +59,4 @@ func TestCopy(t *testing.T) {
 		require.NotNil(t, err)
 		require.Equal(t, ErrOffsetExceedsFileSize, err)
 	})
-
 }
