@@ -9,24 +9,16 @@ type (
 type Stage func(in In) (out Out)
 
 func Worker(in Bi, done In, out Out) {
+	defer close(in)
 	for {
 		select {
 		case <-done:
-			close(in)
 			return
-		default:
-			select {
-			case <-done:
-				close(in)
+		case tmp, ok := <-out:
+			if !ok {
 				return
-			case tmp, ok := <-out:
-				if ok {
-					in <- tmp
-				} else {
-					close(in)
-					return
-				}
 			}
+			in <- tmp
 		}
 	}
 }
