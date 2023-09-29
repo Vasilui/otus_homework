@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"io"
+	"io/fs"
 	"log"
 	"os"
 )
@@ -66,11 +67,11 @@ func validate(fromPath, toPath string, offset int64, limit *int64) (int64, error
 
 	// статистика по файлу на запись
 	toFileStat, err := os.Stat(toPath)
-	if err != nil {
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return 0, ErrUnsupportedFile
 	}
 
-	if fromFileStat.ModTime() == toFileStat.ModTime() &&
+	if toFileStat != nil && fromFileStat.ModTime() == toFileStat.ModTime() &&
 		fromFileStat.Size() == toFileStat.Size() &&
 		fromFileStat.Mode() == toFileStat.Mode() {
 		return 0, ErrorEqualFiles

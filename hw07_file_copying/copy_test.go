@@ -40,10 +40,10 @@ func TestCopy(t *testing.T) {
 
 	t.Run("invalid output file", func(t *testing.T) {
 		fromFile := "testdata/input.txt"
-		outFile := "/root/outfile.txt"
+		outFile := "/root/out.txt"
 		err := Copy(fromFile, outFile, 0, 0)
 		require.Error(t, err)
-		require.Equal(t, ErrUnsupportedFile, err)
+		require.Equal(t, ErrOpenWriteFile, err)
 	})
 
 	t.Run("offset exceeds file size", func(t *testing.T) {
