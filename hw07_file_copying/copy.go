@@ -80,7 +80,7 @@ func processCopy(src, dst *os.File, offset, limit, fromFileSize int64) error {
 	// создаем прогрессбар
 	bar := Bar{}
 	pbSize := fromFileSize
-	if limit != 0 {
+	if limit != 0 && limit < fromFileSize {
 		pbSize = limit
 	} else {
 		limit = pbSize
