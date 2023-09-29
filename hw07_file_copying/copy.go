@@ -14,6 +14,7 @@ var (
 	ErrOffsetExceedsFileSize = errors.New("offset exceeds file size")
 	ErrOpenReadFile          = errors.New("failed open file for read")
 	ErrOpenWriteFile         = errors.New("failed open file for write")
+	ErrorEqualFiles          = errors.New("using the same file ")
 )
 
 func Copy(fromPath, toPath string, offset, limit int64) error {
@@ -61,6 +62,18 @@ func validate(fromPath, toPath string, offset int64, limit *int64) (int64, error
 	fromFileStat, err := os.Stat(fromPath)
 	if err != nil {
 		return 0, ErrUnsupportedFile
+	}
+
+	// статистика по файлу на запись
+	toFileStat, err := os.Stat(toPath)
+	if err != nil {
+		return 0, ErrUnsupportedFile
+	}
+
+	if fromFileStat.ModTime() == toFileStat.ModTime() &&
+		fromFileStat.Size() == toFileStat.Size() &&
+		fromFileStat.Mode() == toFileStat.Mode() {
+		return 0, ErrorEqualFiles
 	}
 
 	// если исходный файл не обычный - кидаем ошибку
