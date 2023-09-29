@@ -97,7 +97,7 @@ func processCopy(src, dst *os.File, offset, limit, fromFileSize int64) error {
 		}
 
 		n, errCopy := io.CopyN(dst, src, BufferSize)
-		if errCopy != nil && errors.Is(errCopy, io.EOF) {
+		if errCopy != nil && !errors.Is(errCopy, io.EOF) {
 			return errCopy
 		}
 
