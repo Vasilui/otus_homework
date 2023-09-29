@@ -12,6 +12,7 @@ var (
 	ErrIsNotRegularFile      = errors.New("is not regular file")
 	BufferSize               = int64(10)
 	ErrOffsetExceedsFileSize = errors.New("offset exceeds file size")
+	ErrOpenReadFile          = errors.New("failed open file for read")
 	ErrOpenWriteFile         = errors.New("failed open file for write")
 )
 
@@ -22,7 +23,7 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 	}
 	src, err := os.Open(fromPath)
 	if err != nil {
-		return err
+		return ErrOpenReadFile
 	}
 	defer func() {
 		if closeErr := src.Close(); closeErr != nil {
@@ -48,7 +49,7 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 }
 
 func validate(fromPath, toPath string, offset int64, limit *int64) (int64, error) {
-	if from == "" || toPath == "" {
+	if fromPath == "" || toPath == "" {
 		return 0, ErrUnsupportedFile
 	}
 
@@ -59,7 +60,7 @@ func validate(fromPath, toPath string, offset int64, limit *int64) (int64, error
 	// статистика по файлу источнику
 	fromFileStat, err := os.Stat(fromPath)
 	if err != nil {
-		return 0, err
+		return 0, ErrUnsupportedFile
 	}
 
 	// если исходный файл не обычный - кидаем ошибку
