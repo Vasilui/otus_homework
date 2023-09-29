@@ -10,7 +10,7 @@ import (
 var (
 	ErrUnsupportedFile       = errors.New("unsupported file")
 	ErrIsNotRegularFile      = errors.New("is not regular file")
-	BufferSize               = 10
+	BufferSize               = int64(10)
 	ErrOffsetExceedsFileSize = errors.New("offset exceeds file size")
 	ErrOpenWriteFile         = errors.New("failed open file for write")
 )
@@ -82,13 +82,21 @@ func processCopy(src, dst *os.File, offset, limit, fromFileSize int64) error {
 	pbSize := fromFileSize
 	if limit != 0 {
 		pbSize = limit
+	} else {
+		limit = pbSize
 	}
 
 	bar.NewOption(offset, pbSize)
 
-	buf := make([]byte, BufferSize)
 	for {
-		n, errRead := src.Read(buf)
+		if offset+BufferSize > limit {
+			BufferSize = limit - offset
+			offset = limit
+		} else {
+			offset += BufferSize
+		}
+
+		n, errRead := io.CopyN(dst, src, BufferSize)
 		if errRead != nil && errRead != io.EOF {
 			return errRead
 		}
@@ -97,18 +105,7 @@ func processCopy(src, dst *os.File, offset, limit, fromFileSize int64) error {
 			break
 		}
 
-		if limit != 0 && offset+int64(n) > limit {
-			n = int(limit - offset)
-			offset = limit
-		} else {
-			offset += int64(n)
-		}
-
 		bar.Play(offset)
-
-		if _, errWrite := dst.Write(buf[:n]); errWrite != nil {
-			return errWrite
-		}
 	}
 
 	bar.Finish()
