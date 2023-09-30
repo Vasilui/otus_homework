@@ -71,9 +71,7 @@ func validate(fromPath, toPath string, offset int64, limit *int64) (int64, error
 		return 0, ErrUnsupportedFile
 	}
 
-	if toFileStat != nil && fromFileStat.ModTime() == toFileStat.ModTime() &&
-		fromFileStat.Size() == toFileStat.Size() &&
-		fromFileStat.Mode() == toFileStat.Mode() {
+	if os.SameFile(fromFileStat, toFileStat) {
 		return 0, ErrorEqualFiles
 	}
 
