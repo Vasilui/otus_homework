@@ -1,5 +1,15 @@
 package main
 
+import (
+	"log"
+	"os"
+)
+
 func main() {
-	// Place your code here.
+	exitCode, err := ReadParams(os.Args[1:])
+	if err != nil {
+		log.Fatalf("failed run program: %s", err.Error())
+	}
+
+	os.Exit(exitCode)
 }
