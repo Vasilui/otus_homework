@@ -35,5 +35,4 @@ func TestRunCmd(t *testing.T) {
 
 		require.Equal(t, 1, code)
 	})
-
 }

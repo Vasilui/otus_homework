@@ -86,10 +86,9 @@ func validatePotentialFile(info os.FileInfo, file *os.File) (EnvValue, error) {
 		val := strings.TrimRight(string(res), "\t ")
 		if val == "" {
 			envVal.NeedRemove = true
-			return envVal, nil
 		}
 		envVal.Value = val
-		return envVal, nil
+		break //nolint:staticcheck
 	}
 
 	return envVal, nil
