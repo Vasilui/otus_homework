@@ -84,8 +84,11 @@ func validatePotentialFile(info os.FileInfo, file *os.File) (EnvValue, error) {
 	for scanner.Scan() {
 		res := bytes.ReplaceAll(scanner.Bytes(), []byte{0}, []byte{10})
 		val := strings.TrimRight(string(res), "\t ")
+		if val == "" {
+			envVal.NeedRemove = true
+			return envVal, nil
+		}
 		envVal.Value = val
-		envVal.NeedRemove = true
 		return envVal, nil
 	}
 
@@ -94,16 +97,16 @@ func validatePotentialFile(info os.FileInfo, file *os.File) (EnvValue, error) {
 
 func ReadParams(params []string) (int, error) {
 	if len(params) == 0 {
-		return 2, ErrNoParams
+		return 1, ErrNoParams
 	}
 
 	if len(params) == 1 {
-		return 2, ErrNoCommandForExecutor
+		return 1, ErrNoCommandForExecutor
 	}
 
 	env, err := ReadDir(params[0])
 	if err != nil {
-		return 2, err
+		return 1, err
 	}
 
 	code := RunCmd(params[1:], env)
