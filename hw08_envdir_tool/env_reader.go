@@ -83,7 +83,7 @@ func validatePotentialFile(info os.FileInfo, file *os.File) (EnvValue, error) {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		res := bytes.ReplaceAll(scanner.Bytes(), []byte{0}, []byte{10})
-		val := strings.Trim(strings.TrimRight(string(res), "\t "), "\"")
+		val := strings.TrimRight(string(res), "\t ")
 		envVal.Value = val
 		envVal.NeedRemove = true
 		return envVal, nil
