@@ -1,15 +1,16 @@
 package main
 
 import (
-	"log"
 	"os"
 	"os/exec"
 )
 
+const errorExitCode = 1
+
 // RunCmd runs a command + arguments (cmd) with environment variables from env.
 func RunCmd(command []string, env Environment) (returnCode int) {
 	if command == nil || env == nil {
-		return 1
+		return errorExitCode
 	}
 	cmd := exec.Command(command[0], command[1:]...) //nolint:gosec
 	for key, val := range env {
@@ -22,7 +23,7 @@ func RunCmd(command []string, env Environment) (returnCode int) {
 
 		err := os.Setenv(key, val.Value)
 		if err != nil {
-			return 1
+			return errorExitCode
 		}
 	}
 
@@ -33,7 +34,7 @@ func RunCmd(command []string, env Environment) (returnCode int) {
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
-		log.Fatal(err)
+		return errorExitCode
 	}
 
 	return cmd.ProcessState.ExitCode()

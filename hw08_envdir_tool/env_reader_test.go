@@ -17,7 +17,7 @@ func TestReadDir(t *testing.T) {
 		envMap, errReadDir := ReadDir(pathToDir)
 
 		require.Empty(t, envMap)
-		require.NotEqual(t, nil, errReadDir)
+		require.NoError(t, errReadDir)
 	})
 
 	t.Run("test success", func(t *testing.T) {
@@ -44,6 +44,6 @@ func TestReadDir(t *testing.T) {
 
 		require.NoError(t, err)
 		_, ok := env["NOTUSE="]
-		require.Equal(t, false, ok)
+		require.False(t, ok)
 	})
 }
