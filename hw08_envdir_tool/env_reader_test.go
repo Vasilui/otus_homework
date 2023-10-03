@@ -17,7 +17,7 @@ func TestReadDir(t *testing.T) {
 		envMap, errReadDir := ReadDir(pathToDir)
 
 		require.Empty(t, envMap)
-		require.NoError(t, errReadDir)
+		require.Error(t, errReadDir)
 	})
 
 	t.Run("test success", func(t *testing.T) {
