@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 type UserRole string
@@ -21,7 +23,7 @@ type (
 	}
 
 	App struct {
-		Version string `validate:"len:5"`
+		Version string `validate:"min:4|max:6|in:foo,hello!"`
 	}
 
 	Token struct {
@@ -42,10 +44,17 @@ func TestValidate(t *testing.T) {
 		expectedErr error
 	}{
 		{
-			// Place your code here.
+			in:          App{Version: "hello"},
+			expectedErr: ValidationErrors{{Field: "App.Version", Err: ErrNotContains}},
 		},
-		// ...
-		// Place your code here.
+		{
+			in:          App{Version: "hel"},
+			expectedErr: ValidationErrors{{Field: "App.Version", Err: joinErrors([]error{ErrInvalidMinLength, ErrNotContains})}},
+		},
+		{
+			in:          App{Version: "hello, world"},
+			expectedErr: ValidationErrors{{Field: "App.Version", Err: joinErrors([]error{ErrInvalidMaxLength, ErrNotContains})}},
+		},
 	}
 
 	for i, tt := range tests {
@@ -53,7 +62,9 @@ func TestValidate(t *testing.T) {
 			tt := tt
 			t.Parallel()
 
-			// Place your code here.
+			err := Validate(tt.in)
+			require.Equal(t, tt.expectedErr, err)
+
 			_ = tt
 		})
 	}
