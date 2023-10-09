@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -12,9 +13,11 @@ var (
 	ErrInvalidInputData        = errors.New("invalid input data")
 	ErrReflectValueIsNotStruct = errors.New("reflect value is not struct")
 	ErrInvalidLength           = errors.New("invalid length")
-	ErrInvalidMaxLength        = errors.New("invalid max length")
-	ErrInvalidMinLength        = errors.New("invalid min length")
+	ErrInvalidMax              = errors.New("invalid max")
+	ErrInvalidMin              = errors.New("invalid min")
 	ErrNotContains             = errors.New("not contains")
+	ErrInvalidValidator        = errors.New("invalid validator")
+	ErrNoMatched               = errors.New("failed matched")
 )
 
 type ValidationError struct {
@@ -56,7 +59,7 @@ func validateStruct(rv reflect.Value, rt reflect.Type, baseName string) error {
 	res := ValidationErrors{}
 
 	for i := 0; i < rv.NumField(); i++ {
-		if rv.Field(i).Kind() == reflect.Struct {
+		if rv.Field(i).Kind() == reflect.Struct && rt.Field(i).IsExported() && rt.Field(i).Tag.Get("validate") == "nested" {
 			err := validateStruct(rv.Field(i), rt.Field(i).Type, strings.Join([]string{baseName, rt.Field(i).Name}, "."))
 			if err != nil {
 				t := ValidationErrors{}
@@ -84,18 +87,24 @@ func validateStruct(rv reflect.Value, rt reflect.Type, baseName string) error {
 		}
 	}
 
+	if len(res) == 0 {
+		return nil
+	}
+
 	return res
 }
 
 func checkStructField(val reflect.Value, sf reflect.StructField) error {
 	validateTags := sf.Tag.Get("validate")
-	if validateTags == "" {
+	if !sf.IsExported() || validateTags == "" {
 		return nil
 	}
 
 	switch val.Kind() {
 	case reflect.String:
 		return joinErrors(validateString(val.String(), strings.Split(validateTags, "|")))
+	case reflect.Int:
+		return joinErrors(validateInt(val.Int(), strings.Split(validateTags, "|")))
 	}
 
 	return nil
@@ -114,6 +123,10 @@ func validateString(val string, validators []string) []error {
 	var res []error
 	for _, v := range validators {
 		item := strings.Split(v, ":")
+		if len(item) < 2 {
+			res = append(res, ErrInvalidValidator)
+			continue
+		}
 
 		if item[0] == "len" {
 			length, err := strconv.Atoi(item[1])
@@ -129,7 +142,7 @@ func validateString(val string, validators []string) []error {
 			if err != nil {
 				res = append(res, err)
 			} else if len(val) > length {
-				res = append(res, ErrInvalidMaxLength)
+				res = append(res, ErrInvalidMax)
 			}
 		}
 
@@ -138,7 +151,7 @@ func validateString(val string, validators []string) []error {
 			if err != nil {
 				res = append(res, err)
 			} else if len(val) < length {
-				res = append(res, ErrInvalidMinLength)
+				res = append(res, ErrInvalidMin)
 			}
 		}
 
@@ -147,6 +160,76 @@ func validateString(val string, validators []string) []error {
 			contains := false
 			for _, word := range data {
 				if word == val {
+					contains = true
+					break
+				}
+			}
+			if !contains {
+				res = append(res, ErrNotContains)
+			}
+		}
+
+		if item[0] == "regexp" {
+			re, err := regexp.Compile(item[1])
+			if err != nil {
+				res = append(res, err)
+			}
+			if !re.MatchString(val) {
+				res = append(res, ErrNoMatched)
+			}
+		}
+	}
+
+	return res
+}
+
+func validateInt(val int64, validators []string) []error {
+	var res []error
+	for _, v := range validators {
+		item := strings.Split(v, ":")
+		if len(item) < 2 {
+			res = append(res, ErrInvalidValidator)
+			continue
+		}
+
+		if item[0] == "len" {
+			i := strconv.FormatInt(val, 64)
+			length, err := strconv.Atoi(item[1])
+			if err != nil {
+				res = append(res, err)
+			} else if len(i) != length {
+				res = append(res, ErrInvalidLength)
+			}
+		}
+
+		if item[0] == "max" {
+			i, err := strconv.ParseInt(item[1], 10, 64)
+			if err != nil {
+				res = append(res, err)
+			} else if val > i {
+				res = append(res, ErrInvalidMax)
+			}
+		}
+
+		if item[0] == "min" {
+			i, err := strconv.ParseInt(item[1], 10, 64)
+			if err != nil {
+				res = append(res, err)
+			} else if val < i {
+				res = append(res, ErrInvalidMin)
+			}
+		}
+
+		if item[0] == "in" {
+			data := strings.Split(item[1], ",")
+			contains := false
+			for _, s := range data {
+				i, err := strconv.ParseInt(s, 10, 64)
+				if err != nil {
+					res = append(res, err)
+					break
+				}
+				if i == val {
 					contains = true
 					break
 				}

@@ -32,8 +32,21 @@ type (
 		Signature []byte
 	}
 
+	Phone struct {
+		Number string `validate:"regexp:\\d{11}"`
+	}
+
+	Nested struct {
+		NameApp string
+		App     App `validate:"nested"`
+	}
+
+	NoExported struct {
+		name string `validate:"len5"`
+	}
+
 	Response struct {
-		Code int    `validate:"in:200,404,500"`
+		Code int    `validate:"in:200,404,500|min:100|max:600"`
 		Body string `json:"omitempty"`
 	}
 )
@@ -49,11 +62,39 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			in:          App{Version: "hel"},
-			expectedErr: ValidationErrors{{Field: "App.Version", Err: joinErrors([]error{ErrInvalidMinLength, ErrNotContains})}},
+			expectedErr: ValidationErrors{{Field: "App.Version", Err: joinErrors([]error{ErrInvalidMin, ErrNotContains})}},
 		},
 		{
 			in:          App{Version: "hello, world"},
-			expectedErr: ValidationErrors{{Field: "App.Version", Err: joinErrors([]error{ErrInvalidMaxLength, ErrNotContains})}},
+			expectedErr: ValidationErrors{{Field: "App.Version", Err: joinErrors([]error{ErrInvalidMax, ErrNotContains})}},
+		},
+		{
+			in:          Phone{Number: "9876543210"},
+			expectedErr: ValidationErrors{{Field: "Phone.Number", Err: ErrNoMatched}},
+		},
+		{
+			in:          Phone{Number: "98765432100"},
+			expectedErr: nil,
+		},
+		{
+			in:          Nested{NameApp: "application", App: App{Version: "hello"}},
+			expectedErr: ValidationErrors{{Field: "Nested.App.Version", Err: ErrNotContains}},
+		},
+		{
+			in:          NoExported{name: "Vasilii"},
+			expectedErr: nil,
+		},
+		{
+			in:          Response{Code: 201},
+			expectedErr: ValidationErrors{{Field: "Response.Code", Err: ErrNotContains}},
+		},
+		{
+			in:          Response{Code: 90},
+			expectedErr: ValidationErrors{{Field: "Response.Code", Err: joinErrors([]error{ErrNotContains, ErrInvalidMin})}},
+		},
+		{
+			in:          Response{Code: 999},
+			expectedErr: ValidationErrors{{Field: "Response.Code", Err: joinErrors([]error{ErrNotContains, ErrInvalidMax})}},
 		},
 	}
 
