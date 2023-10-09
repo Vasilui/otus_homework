@@ -36,6 +36,11 @@ type (
 		Number string `validate:"regexp:\\d{11}"`
 	}
 
+	Slices struct {
+		TestString []string `validate:"len:5"`
+		TestInt    []int    `validate:"max:10"`
+	}
+
 	Nested struct {
 		NameApp string
 		App     App `validate:"nested"`
@@ -95,6 +100,14 @@ func TestValidate(t *testing.T) {
 		{
 			in:          Response{Code: 999},
 			expectedErr: ValidationErrors{{Field: "Response.Code", Err: joinErrors([]error{ErrNotContains, ErrInvalidMax})}},
+		},
+		{
+			in:          Slices{TestString: []string{"Vasilii"}},
+			expectedErr: ValidationErrors{{Field: "Slices.TestString.[0]", Err: ErrInvalidLength}},
+		},
+		{
+			in:          Slices{TestInt: []int{11}},
+			expectedErr: ValidationErrors{{Field: "Slices.TestInt.[0]", Err: ErrInvalidMax}},
 		},
 	}
 
