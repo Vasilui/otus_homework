@@ -18,6 +18,7 @@ var (
 	ErrNotContains             = errors.New("not contains")
 	ErrInvalidValidator        = errors.New("invalid validator")
 	ErrNoMatched               = errors.New("failed matched")
+	ErrInvalidBuildError       = errors.New("failed build error string")
 )
 
 type ValidationError struct {
@@ -28,12 +29,15 @@ type ValidationError struct {
 type ValidationErrors []ValidationError
 
 func (v ValidationErrors) Error() string {
-	res := ""
+	var res strings.Builder
+
 	for _, err := range v {
-		res += fmt.Sprintf("%s is incorrect: %s\n", err.Field, err.Err.Error())
+		if _, e := fmt.Fprintf(&res, "%s is incorrect: %s\n", err.Field, err.Err.Error()); e != nil {
+			return ErrInvalidBuildError.Error()
+		}
 	}
 
-	return res
+	return res.String()
 }
 
 func Validate(v interface{}) error {
