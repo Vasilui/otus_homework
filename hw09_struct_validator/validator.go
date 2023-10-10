@@ -61,10 +61,13 @@ func validateStruct(rv reflect.Value, rt reflect.Type, baseName string) error {
 	for i := 0; i < rv.NumField(); i++ {
 		err := checkStructField(rv.Field(i), rt.Field(i), baseName)
 		if err != nil {
-			e := ValidationErrors{}
-			if errors.As(err, &e) {
-				res = append(res, e...)
-			} else {
+			t := ValidationErrors{}
+			switch {
+			case errors.Is(err, ErrInvalidValidator):
+				return err
+			case errors.As(err, &t):
+				res = append(res, t...)
+			default:
 				res = append(res, ValidationError{
 					Field: fmt.Sprintf("%s.%s", baseName, rt.Field(i).Name),
 					Err:   err,
@@ -88,9 +91,9 @@ func checkStructField(val reflect.Value, sf reflect.StructField, baseName string
 
 	switch val.Kind() { //nolint:exhaustive
 	case reflect.String:
-		return joinErrors(validateString(val.String(), strings.Split(validateTags, "|")))
+		return validateString(val.String(), strings.Split(validateTags, "|"))
 	case reflect.Int:
-		return joinErrors(validateInt(val.Int(), strings.Split(validateTags, "|")))
+		return validateInt(val.Int(), strings.Split(validateTags, "|"))
 	case reflect.Slice:
 		return checkSliceField(val, strings.Split(validateTags, "|"), fmt.Sprintf("%s.%s", baseName, sf.Name))
 	case reflect.Struct:
@@ -101,9 +104,12 @@ func checkStructField(val reflect.Value, sf reflect.StructField, baseName string
 		err := validateStruct(val, sf.Type, strings.Join([]string{baseName, sf.Name}, "."))
 		if err != nil {
 			t := ValidationErrors{}
-			if errors.As(err, &t) {
+			switch {
+			case errors.Is(err, ErrInvalidValidator):
+				return err
+			case errors.As(err, &t):
 				res = append(res, t...)
-			} else {
+			default:
 				res = append(res, ValidationError{
 					Field: fmt.Sprintf("%s.%s", baseName, sf.Name),
 					Err:   err,
@@ -128,14 +134,17 @@ func checkSliceField(val reflect.Value, validators []string, baseName string) er
 		var err error
 		switch val.Index(i).Kind() { //nolint:exhaustive
 		case reflect.String:
-			err = joinErrors(validateString(val.Index(i).String(), validators))
+			err = validateString(val.Index(i).String(), validators)
 		case reflect.Int:
-			err = joinErrors(validateInt(val.Index(i).Int(), validators))
+			err = validateInt(val.Index(i).Int(), validators)
 		default:
 			return nil
 		}
 
 		if err != nil {
+			if errors.Is(err, ErrInvalidValidator) {
+				return err
+			}
 			res = append(res, ValidationError{Field: fmt.Sprintf("%s.[%d]", baseName, i), Err: err})
 		}
 	}
@@ -147,19 +156,18 @@ func checkSliceField(val reflect.Value, validators []string, baseName string) er
 	return res
 }
 
-func validateString(val string, validators []string) []error { //nolint:gocognit
+func validateString(val string, validators []string) error { //nolint:gocognit
 	var res []error
 	for _, v := range validators {
 		item := strings.Split(v, ":")
 		if len(item) < 2 {
-			res = append(res, ErrInvalidValidator)
-			continue
+			return ErrInvalidValidator
 		}
 
 		if item[0] == "len" {
 			length, err := strconv.Atoi(item[1])
 			if err != nil {
-				res = append(res, err)
+				return ErrInvalidValidator
 			} else if len(val) != length {
 				res = append(res, ErrInvalidLength)
 			}
@@ -168,7 +176,7 @@ func validateString(val string, validators []string) []error { //nolint:gocognit
 		if item[0] == "max" {
 			length, err := strconv.Atoi(item[1])
 			if err != nil {
-				res = append(res, err)
+				return ErrInvalidValidator
 			} else if len(val) > length {
 				res = append(res, ErrInvalidMax)
 			}
@@ -177,7 +185,7 @@ func validateString(val string, validators []string) []error { //nolint:gocognit
 		if item[0] == "min" {
 			length, err := strconv.Atoi(item[1])
 			if err != nil {
-				res = append(res, err)
+				return ErrInvalidValidator
 			} else if len(val) < length {
 				res = append(res, ErrInvalidMin)
 			}
@@ -200,7 +208,7 @@ func validateString(val string, validators []string) []error { //nolint:gocognit
 		if item[0] == "regexp" {
 			re, err := regexp.Compile(item[1])
 			if err != nil {
-				res = append(res, err)
+				return ErrInvalidValidator
 			}
 			if !re.MatchString(val) {
 				res = append(res, ErrNoMatched)
@@ -208,23 +216,22 @@ func validateString(val string, validators []string) []error { //nolint:gocognit
 		}
 	}
 
-	return res
+	return joinErrors(res)
 }
 
-func validateInt(val int64, validators []string) []error { //nolint:gocognit
+func validateInt(val int64, validators []string) error { //nolint:gocognit
 	var res []error
 	for _, v := range validators {
 		item := strings.Split(v, ":")
 		if len(item) < 2 {
-			res = append(res, ErrInvalidValidator)
-			continue
+			return ErrInvalidValidator
 		}
 
 		if item[0] == "len" {
 			i := strconv.FormatInt(val, 10)
 			length, err := strconv.Atoi(item[1])
 			if err != nil {
-				res = append(res, err)
+				return ErrInvalidValidator
 			} else if len(i) != length {
 				res = append(res, ErrInvalidLength)
 			}
@@ -233,7 +240,7 @@ func validateInt(val int64, validators []string) []error { //nolint:gocognit
 		if item[0] == "max" {
 			i, err := strconv.ParseInt(item[1], 10, 64)
 			if err != nil {
-				res = append(res, err)
+				return ErrInvalidValidator
 			} else if val > i {
 				res = append(res, ErrInvalidMax)
 			}
@@ -242,7 +249,7 @@ func validateInt(val int64, validators []string) []error { //nolint:gocognit
 		if item[0] == "min" {
 			i, err := strconv.ParseInt(item[1], 10, 64)
 			if err != nil {
-				res = append(res, err)
+				return ErrInvalidValidator
 			} else if val < i {
 				res = append(res, ErrInvalidMin)
 			}
@@ -254,8 +261,7 @@ func validateInt(val int64, validators []string) []error { //nolint:gocognit
 			for _, s := range data {
 				i, err := strconv.ParseInt(s, 10, 64)
 				if err != nil {
-					res = append(res, err)
-					break
+					return ErrInvalidValidator
 				}
 				if i == val {
 					contains = true
@@ -268,7 +274,7 @@ func validateInt(val int64, validators []string) []error { //nolint:gocognit
 		}
 	}
 
-	return res
+	return joinErrors(res)
 }
 
 func joinErrors(e []error) error {

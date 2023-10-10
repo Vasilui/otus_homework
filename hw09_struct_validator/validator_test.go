@@ -1,39 +1,29 @@
 package hw09structvalidator
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
-type UserRole string
-
 // Test the function on different structures and other types.
 type (
-	User struct {
-		ID     string `json:"id" validate:"len:36"`
-		Name   string
-		Age    int             `validate:"min:18|max:50"`
-		Email  string          `validate:"regexp:^\\w+@\\w+\\.\\w+$"`
-		Role   UserRole        `validate:"in:admin,stuff"`
-		Phones []string        `validate:"len:11"`
-		meta   json.RawMessage //nolint:unused
-	}
-
 	App struct {
 		Version string `validate:"min:4|max:6|in:foo,hello!"`
 	}
 
-	Token struct {
-		Header    []byte
-		Payload   []byte
-		Signature []byte
-	}
-
 	Phone struct {
 		Number string `validate:"regexp:\\d{11}"`
+	}
+
+	InvalidRegexp struct {
+		Number string `validate:"regexp:+++++"`
+	}
+
+	InvalidMin struct {
+		Name string `validate:"min:7a"`
 	}
 
 	Slices struct {
@@ -56,7 +46,35 @@ type (
 	}
 )
 
-func TestValidate(t *testing.T) {
+func TestValidateSuccess(t *testing.T) {
+	tests := []struct {
+		in          interface{}
+		expectedErr error
+	}{
+		{
+			in:          Phone{Number: "98765432100"},
+			expectedErr: nil,
+		},
+		{
+			in:          NoExported{name: "Vasilii"},
+			expectedErr: nil,
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("case %d", i), func(t *testing.T) {
+			tt := tt
+			t.Parallel()
+
+			err := Validate(tt.in)
+			require.NoError(t, err)
+
+			_ = tt
+		})
+	}
+}
+
+func TestValidateError(t *testing.T) {
 	tests := []struct {
 		in          interface{}
 		expectedErr error
@@ -78,16 +96,8 @@ func TestValidate(t *testing.T) {
 			expectedErr: ValidationErrors{{Field: "Phone.Number", Err: ErrNoMatched}},
 		},
 		{
-			in:          Phone{Number: "98765432100"},
-			expectedErr: nil,
-		},
-		{
 			in:          Nested{NameApp: "application", App: App{Version: "hello"}},
 			expectedErr: ValidationErrors{{Field: "Nested.App.Version", Err: ErrNotContains}},
-		},
-		{
-			in:          NoExported{name: "Vasilii"},
-			expectedErr: nil,
 		},
 		{
 			in:          Response{Code: 201},
@@ -115,9 +125,40 @@ func TestValidate(t *testing.T) {
 		t.Run(fmt.Sprintf("case %d", i), func(t *testing.T) {
 			tt := tt
 			t.Parallel()
+			v := ValidationErrors{}
 
 			err := Validate(tt.in)
+			require.True(t, errors.As(err, &v))
 			require.Equal(t, tt.expectedErr, err)
+
+			_ = tt
+		})
+	}
+}
+
+func TestInvalidValidator(t *testing.T) {
+	tests := []struct {
+		in          interface{}
+		expectedErr error
+	}{
+		{
+			in:          InvalidRegexp{Number: "98765432100"},
+			expectedErr: ErrInvalidValidator,
+		},
+		{
+			in:          InvalidMin{Name: "Vasilii"},
+			expectedErr: ErrInvalidValidator,
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("case %d", i), func(t *testing.T) {
+			tt := tt
+			t.Parallel()
+
+			err := Validate(tt.in)
+			require.True(t, errors.Is(err, ErrInvalidValidator))
+			require.Equal(t, err, tt.expectedErr)
 
 			_ = tt
 		})
